@@ -1,6 +1,6 @@
 import pymysql
 
-def insert_data_into_mysql(sql_data, mysql_queries):  ## function to output sql queries into live database
+def insert_data_into_mysql(sql_data, mysql_queries):  ## function to output sql queries into live database TRUNCATE + INSERT
     # Step 1: Connect to MySQL // make a sql file
     mysql_conn = pymysql.connect(
         host="127.0.0.1",
@@ -10,14 +10,18 @@ def insert_data_into_mysql(sql_data, mysql_queries):  ## function to output sql 
     )
     cursor_mysql = mysql_conn.cursor()
 
-    # Step 2: Create tables in MySQL
+    # Step 2: Create tables in MySQL if they don't exist
     for table_name, create_query in mysql_queries.items():
-        print(f"Creating table {table_name}...")
+        print(f"Creating table {table_name} if not exists...")
         cursor_mysql.execute(create_query)
 
-    # Step 3: Insert data into MySQL
+    # Step 3: Truncate tables and Insert data into MySQL
     for table_name, table_info in sql_data.items():
         if table_info["data"]:
+            # Truncate the table before inserting new data
+            print(f"Truncating table {table_name}...")
+            cursor_mysql.execute(f"TRUNCATE TABLE `{table_name}`")
+            
             # Dynamically create placeholders for the columns
             placeholders = ", ".join(["%s"] * len(table_info["schema"]))
             column_names = ", ".join([f"`{col[0]}`" for col in table_info["schema"]])  # Wrap column names in backticks
@@ -25,20 +29,18 @@ def insert_data_into_mysql(sql_data, mysql_queries):  ## function to output sql 
             
             print(f"Inserting data into {table_name}...")
             for row in table_info["data"]:
-                # try:
+                try:
                     # Check if row has fewer values than the number of columns in the schema
                     if len(row) < len(table_info["schema"]):
                         print(f"Row length mismatch in {table_name}: Expected {len(table_info['schema'])} values, got {len(row)} values.")
                         row = list(row) + [None] * (len(table_info["schema"]) - len(row))  # Pad missing values with None
 
-                    # Check if row and placeholders match before execution
-                    if len(row) != len(table_info["schema"]):
-                        raise ValueError(f"Mismatch between placeholders and values for table {table_name}")
-
+                    # Execute the insert query
                     cursor_mysql.execute(insert_query, tuple(row))
-                # except Exception as e:
-                #     print(f"Error inserting data into {table_name}: {e}")
+                except Exception as e:
+                    print(f"Error inserting data into {table_name}: {e}")
 
+    # Commit the changes
     mysql_conn.commit()
     mysql_conn.close()
 
