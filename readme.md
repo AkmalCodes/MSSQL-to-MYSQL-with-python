@@ -10,3 +10,7 @@
 - cd path/to/your/repo
 - pip install -r requirements.txt
 - run "python import_to_mysql.py"
+
+# Additional info
+
+- the file JEMiSys_Backup.sql file is exported from heidisql
